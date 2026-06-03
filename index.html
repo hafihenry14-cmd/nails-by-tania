@@ -532,29 +532,38 @@ async function init() {
   try {
     // Load services/prices
     const svcs = await dbGet('services');
-    if(svcs && svcs.length) services = svcs;
-    else await dbUpsert('services', DEFAULT_SERVICES); // seed on first run
+    if(svcs && svcs.length) {
+      services = svcs;
+    } else {
+      // First run — seed default services
+      await dbUpsert('services', DEFAULT_SERVICES);
+      services = [...DEFAULT_SERVICES];
+    }
 
-    // Load settings
+    // Load settings (includes blocked_hours)
     const cfg = await dbGet('settings');
-    cfg.forEach(r => { appSettings[r.key] = r.value; });
+    cfg.forEach(r => {
+      if(r.key === 'blocked_hours') {
+        try { blockedH = JSON.parse(r.value || '[]'); } catch(e){ blockedH=[]; }
+      } else {
+        appSettings[r.key] = r.value;
+      }
+    });
 
-    // Load blocked hours
-    const bh = await dbGet('settings',{key:'blocked_hours'});
-    if(bh && bh.length) blockedH = JSON.parse(bh[0].value || '[]');
-
-    // Load appointments
-    appointments = await dbGet('appointments');
+    // Load appointments ordered by created_at desc
+    const {data: apptData, error: apptErr} = await supa
+      .from('appointments').select('*').order('created_at', {ascending: false});
+    if(apptErr) throw apptErr;
+    appointments = apptData || [];
 
     setDbStatus('ok','✓ Conectado');
     renderServiceGrid();
   } catch(e) {
     console.error(e);
-    setDbStatus('err','✗ Sin conexión');
+    setDbStatus('err','✗ Sin conexión — usando datos locales');
     services = [...DEFAULT_SERVICES];
     renderServiceGrid();
   }
-  // Hide loader
   setTimeout(()=>{
     document.getElementById('pageLoader').classList.add('hide');
   }, 400);
@@ -774,10 +783,12 @@ function adminTab(name,btn){
   document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
   ['prices','calendar','appointments','hours','settings'].forEach(t=>{
-    document.getElementById('tab-'+t).style.display=t===name?'block':'none';
+    document.getElementById('tab-'+t).style.display = t===name ? 'block' : 'none';
   });
-  if(name==='calendar'){acalMonth=now.getMonth();acalYear=now.getFullYear();renderAdminCal();}
+  if(name==='calendar'){ acalMonth=now.getMonth(); acalYear=now.getFullYear(); acalCurrentView='month'; renderAdminCal(); }
   if(name==='appointments') renderApptList();
+  if(name==='hours') renderHoursGrid();
+  if(name==='prices') renderPriceTable();
 }
 
 // ── Prices ──
@@ -850,10 +861,11 @@ async function deleteAppt(id){
   if(!confirm('¿Cancelar esta cita?')) return;
   try {
     await dbDelete('appointments', id);
-    appointments=appointments.filter(a=>a.id!==id);
+    appointments = appointments.filter(a => a.id !== id);
+    closePopup();
     renderApptList();
     renderAdminCal();
-  } catch(e){ alert('Error: '+e.message); }
+  } catch(e){ alert('Error al cancelar: '+e.message); }
 }
 
 // ── Settings ──
@@ -904,7 +916,13 @@ function acalView(v,btn){
   acalCurrentView=v;
   document.querySelectorAll('.acal-vbtn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if(v==='day'&&!acalSelDay) acalSelDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  if(v==='day' && !acalSelDay){
+    acalSelDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
+  if(v==='month' && acalSelDay){
+    acalMonth = acalSelDay.getMonth();
+    acalYear  = acalSelDay.getFullYear();
+  }
   renderAdminCal();
 }
 
@@ -966,8 +984,8 @@ function renderMonthView(){
 }
 
 function acalClickDay(d){
-  acalSelDay=new Date(acalYear,acalMonth,d);
-  acalCurrentView='day';
+  acalSelDay = new Date(acalYear, acalMonth, d);
+  acalCurrentView = 'day';
   document.querySelectorAll('.acal-vbtn').forEach(b=>b.classList.remove('active'));
   document.getElementById('vb-day').classList.add('active');
   renderAdminCal();
