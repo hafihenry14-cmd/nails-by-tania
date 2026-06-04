@@ -317,9 +317,19 @@
         <div class="summary-row"><span class="summary-label">Contacto</span><span id="sum-contact">—</span></div>
         <div class="summary-row"><span class="summary-label">Total</span><span id="sum-price">—</span></div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-outline" onclick="goTo(3)">← Editar</button>
-        <button class="btn btn-primary" id="btnConfirm" onclick="confirmBooking()">Agendar cita 💅</button>
+      <!-- Aviso de abono -->
+<div style="background:#fff8e1;border:1.5px solid #f9c74f;border-radius:14px;padding:16px 18px;margin-bottom:16px;display:flex;gap:12px;align-items:flex-start;">
+  <span style="font-size:1.4rem;">⚠️</span>
+  <div>
+    <div style="font-weight:500;color:#7d5a00;font-size:.9rem;margin-bottom:4px;">Se requiere abono para confirmar</div>
+    <div style="font-size:.82rem;color:#9a7000;line-height:1.5;">Para reservar tu cita es necesario realizar un abono de <strong>$3</strong> por WhatsApp antes de confirmar. Sin el abono la cita no quedará registrada.</div>
+  </div>
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-outline" onclick="goTo(3)">← Editar</button>
+  <button class="btn btn-primary" id="btnConfirm" onclick="confirmBooking()">Ya hice mi abono 💅</button>
+</div>
       </div>
     </div>
   </div>
