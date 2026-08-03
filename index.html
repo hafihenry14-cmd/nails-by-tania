@@ -10,7 +10,7 @@
   <meta property="og:image" content="https://i.imgur.com/A6Z7OXU.jpeg" />
   <meta property="og:url" content="https://nailsbytania.netlify.app" />
   <meta property="og:type" content="website" />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -26,12 +26,58 @@
     @keyframes spin{to{transform:rotate(360deg);}}
     .loader-txt{font-size:.85rem;color:var(--mauve);letter-spacing:.1em;}
     
-    header{text-align:center;padding:56px 24px 32px;position:relative;z-index:1;animation:fadeDown .8s ease both;}
-    .logo-icon{font-size:2rem;display:block;margin-bottom:8px;animation:swing 6s ease-in-out infinite;}
-    @keyframes swing{0%,100%{transform:rotate(-5deg);}50%{transform:rotate(5deg);}}
-    header h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.4rem,6vw,4rem);font-weight:300;letter-spacing:.08em;color:var(--deep);line-height:1.1;}
-    header h1 span{color:var(--rose);font-style:italic;}
-    header p{margin-top:10px;font-size:.88rem;letter-spacing:.18em;text-transform:uppercase;color:var(--mauve);}
+    /* Título Neuro-optimizado */
+    header {
+      text-align: center;
+      padding: 48px 24px 32px;
+      position: relative;
+      z-index: 1;
+      animation: fadeDown .8s ease both;
+    }
+
+    header h1 {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(2.4rem, 6.5vw, 4.2rem);
+      font-weight: 800;
+      letter-spacing: .06em;
+      color: #1F1924;
+      line-height: 1.15;
+      text-transform: uppercase;
+      display: inline-block;
+      background: linear-gradient(135deg, #1F1924 20%, #C9856C 50%, #D4AF37 80%, #1F1924 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: neuroShine 4s linear infinite;
+      filter: drop-shadow(0 2px 8px rgba(201, 133, 108, 0.15));
+    }
+
+    header h1 span {
+      font-weight: 900;
+      font-style: normal;
+      display: inline-block;
+      animation: subtlePulse 2.5s ease-in-out infinite;
+    }
+
+    header p {
+      margin-top: 14px;
+      font-size: .92rem;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: #8C6A75;
+      font-weight: 600;
+    }
+
+    @keyframes neuroShine {
+      0% { background-position: 0% center; }
+      100% { background-position: 200% center; }
+    }
+
+    @keyframes subtlePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+
     .admin-link{position:fixed;top:16px;right:16px;z-index:100;background:var(--deep);color:#e8c4b8;border:none;border-radius:20px;padding:8px 16px;font-size:.75rem;font-family:'DM Sans',sans-serif;cursor:pointer;letter-spacing:.08em;opacity:.7;transition:opacity .2s;}
     .admin-link:hover{opacity:1;}
     
@@ -254,7 +300,6 @@
 <button class="admin-link" onclick="openAdmin()">⚙ Admin</button>
 
 <header>
-  <span class="logo-icon">💅</span>
   <h1>Guapetonas Nails by <span>Tania</span></h1>
   <p>Studio de manicura &amp; nail art</p>
 </header>
@@ -727,7 +772,7 @@ function renderSlots() {
   document.getElementById('timeGrid').innerHTML=ALL_SLOTS.map(t=>{
     const isTaken=taken.includes(t);
     const isSel=booking.time===t;
-    return `<div class="time-slot${isTaken?' taken':''}${isSel?' selected':''}" onclick="${isTaken?'':'selectTime(\''+t+'\')'}">${t}${isTaken?'<br><span style="font-size:.6rem">Ocupado</span>':''}</div>`;
+    return `<div class="time-slot${isTaken?' taken':''}${isSel?' selected':''}" onclick="${isTaken?'':'selectTime(''+t+'')'}">${t}${isTaken?'<br><span style="font-size:.6rem">Ocupado</span>':''}</div>`;
   }).join('');
 }
 
@@ -1127,7 +1172,7 @@ function renderDayView(){
   document.getElementById('acalBody').innerHTML=html;
 }
 
-function showApptDetail(id){
+showApptDetail = function(id){
   const a=appointments.find(x=>x.id===id);
   if(!a) return;
   document.getElementById('popupContent').innerHTML=`
