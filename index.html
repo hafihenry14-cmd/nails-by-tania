@@ -819,25 +819,25 @@ function shareWhatsApp(){
   const wa = appSettings.whatsapp || '521234567890';
   
   // Construcción detallada de los servicios seleccionados
-  const serviceLines = booking.services.map(s => `• ${s.name} ($${s.price})`).join('\n');
+  const serviceLines = booking.services.map(s => `  • ${s.name} ($${s.price})`).join('\n');
   
-  // Usamos efervescencia/iconos estándar o viñetas limpias para evitar fallos de codificación
+  // Emojis estándar de alto soporte universal
   const msgText = 
-`*Cita confirmada - Nails by Tania*
+`✨ *Cita Confirmada - Nails by Tania* ✨
 
-*Código:* ${code}
+📌 *Código:* ${code}
 
-*Servicios seleccionados:*
+💅 *Servicios seleccionados:*
 ${serviceLines}
 
-*Duración aprox:* ${booking.durationText}
-*Fecha:* ${booking.day} de ${MONTH_NAMES[booking.month]} ${booking.year}
-*Hora:* ${booking.time} hrs
-*Total a pagar:* $${booking.totalPrice}
+⏳ *Duración aprox:* ${booking.durationText}
+📅 *Fecha:* ${booking.day} de ${MONTH_NAMES[booking.month]} ${booking.year}
+⏰ *Hora:* ${booking.time} hrs
+💵 *Total a pagar:* $${booking.totalPrice}
 
-¡Gracias!`;
+💖 ¡Recuerda Llegar A tiempo !`;
 
-  // encodeURIComponent asegura que los saltos de línea y símbolos no se rompan
+  // Se usa encodeURIComponent para preservar saltos de línea y símbolos correctamente
   const msg = encodeURIComponent(msgText);
   window.open(`https://api.whatsapp.com/send?phone=${wa}&text=${msg}`, '_blank');
 }
