@@ -16,7 +16,14 @@
   <style>
     :root{--cream:#faf6f1;--blush:#e8c4b8;--rose:#c9856c;--deep:#3a2a25;--mauve:#8b5e52;--gold:#c9a96e;--light:#f5ede7;--white:#fffdfb;--green:#4caf7d;--admin-bg:#1e1410;}
     *{margin:0;padding:0;box-sizing:border-box;}
-    body{background:var(--cream);color:var(--deep);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+    body {
+  background: linear-gradient(rgba(250, 246, 241, 0.88), rgba(250, 246, 241, 0.88)), 
+              url('https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=1600&auto=format&fit=crop') center/cover fixed no-repeat;
+  color: var(--deep);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
     body::before{content:'';position:fixed;top:-120px;right:-120px;width:480px;height:480px;background:radial-gradient(circle,#e8c4b877 0%,transparent 70%);border-radius:50%;pointer-events:none;z-index:0;}
     body::after{content:'';position:fixed;bottom:-100px;left:-80px;width:360px;height:360px;background:radial-gradient(circle,#c9856c33 0%,transparent 70%);border-radius:50%;pointer-events:none;z-index:0;}
     
