@@ -1,4 +1,4 @@
-[source: 1]<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
@@ -380,7 +380,7 @@
              />
         </div>
         <h2>¡Cita confirmada!</h2>
-        <p>Tu cita ha sido agendada exitosamente. <span>Envíala a mi WhatsApp</span> Ven puntual o perderás tu cita</p>
+        <p>Tu cita ha sido agendada exitosamente. <span>Envíala a mi WhatsApp</span>span> Ven puntual o perderás tu cita</p>
         <div class="confirmation-code" id="confCode">NT-0000</div>
         <p style="font-size:.8rem;color:#b0968c;">Guarda este código</p>
         <div id="emailStatusWrap" style="margin:8px 0;"></div>
@@ -549,7 +549,6 @@ const booking = {
   services: [], // Guardará los objetos completos de servicios
   totalPrice: 0,
   durationText: '',
-  durationMinutes: 0, // Mantiene la suma en número entero
   day: null,
   month: null,
   year: null,
@@ -562,20 +561,6 @@ let viewMonth = now.getMonth(), viewYear = now.getFullYear();
 let acalMonth = now.getMonth(), acalYear = now.getFullYear();
 let acalCurrentView = 'month';
 let acalSelDay = null;
-
-// ════════════════════════════════════════════
-//  HELPERS DE TIEMPO
-// ════════════════════════════════════════════
-function timeToMin(t) {
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function parseDurationInMinutes(durationStr) {
-  if (!durationStr) return 30; // Valor por defecto si no hay
-  const match = durationStr.match(/\d+/);
-  return match ? parseInt(match[0], 10) : 30;
-}
 
 // ════════════════════════════════════════════
 //  SUPABASE HELPERS
@@ -685,9 +670,9 @@ function selectService(id) {
   // Calcular duración combinada estimada
   let totalMin = 0;
   booking.services.forEach(item => {
-    totalMin += parseDurationInMinutes(item.duration);
+    const min = parseInt(item.duration) || 0;
+    totalMin += min;
   });
-  booking.durationMinutes = totalMin;
   booking.durationText = totalMin > 0 ? `~${totalMin} min` : '—';
 
   // Actualizar UI
@@ -710,7 +695,7 @@ function goTo(n) {
     const s=document.getElementById('s'+i);
     s.className='step'+(i<n?' done':i===n?' active':'');
   }
-  if(n===2) renderCal();
+  if(n===2){ renderCal(); if(booking.day) renderSlots(); }
   if(n===4) fillSummary();
 }
 
@@ -747,57 +732,77 @@ function selectDay(d) {
   renderCal(); renderSlots();
 }
 
+// ── Helpers de tiempo/duración ──
+function timeToMin(t){
+  const [h,m]=t.split(':').map(Number);
+  return h*60+m;
+}
+function minToTime(m){
+  const h=Math.floor(m/60), mm=m%60;
+  return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+}
+// Extrae los minutos numéricos de textos tipo "60 min" o "~60 min"
+function getDurationMinutes(text){
+  if(!text) return 30;
+  const match=String(text).match(/\d+/);
+  return match ? parseInt(match[0]) : 30;
+}
+
 function renderSlots() {
   document.getElementById('timeTitle').style.display='block';
   document.getElementById('timeGrid').style.display='grid';
   const dayKey=`${booking.year}-${booking.month}-${booking.day}`;
-  
-  // Obtener citas del día
-  const dayAppointments = appointments.filter(a => a.day_key === dayKey);
-  const currentServiceDuration = booking.durationMinutes || 30;
+  const dayAppointments=appointments.filter(a=>a.day_key===dayKey);
 
-  document.getElementById('timeGrid').innerHTML = ALL_SLOTS.map(slotStr => {
-    const slotStart = timeToMin(slotStr);
-    const slotEnd = slotStart + 30; // Bloques de la agenda (cada 30 min)
-
-    // 1. Bloqueo manual desde el Panel Admin
-    let isTaken = blockedH.includes(slotStr);
-
-    // 2. Comprobar solapamiento con citas existentes
-    if (!isTaken) {
-      isTaken = dayAppointments.some(appt => {
-        const apptStart = timeToMin(appt.time);
-        const apptDuration = parseDurationInMinutes(appt.duration);
-        const apptEnd = apptStart + apptDuration;
-
-        // Regla de solapamiento de rangos de tiempo
-        return slotStart < apptEnd && slotEnd > apptStart;
-      });
+  // Construimos el conjunto de minutos ya ocupados por citas existentes,
+  // bloqueando tantos slots de 30 min como abarque la duración de cada cita
+  const occupiedMinutes=new Set();
+  dayAppointments.forEach(a=>{
+    const start=timeToMin(a.time);
+    const dur=getDurationMinutes(a.duration);
+    const blockDur=Math.ceil(dur/30)*30; // redondeo hacia arriba a múltiplos de 30
+    for(let m=start; m<start+blockDur; m+=30){
+      occupiedMinutes.add(m);
     }
+  });
 
-    // 3. Validar si el servicio nuevo sobrepasa la jornada laboral (no cabe antes del cierre)
-    if (!isTaken) {
-      const lastSlotMin = timeToMin(ALL_SLOTS[ALL_SLOTS.length - 1]) + 30;
-      if (slotStart + currentServiceDuration > lastSlotMin) {
-        isTaken = true;
+  // Horas bloqueadas manualmente desde el panel admin
+  blockedH.forEach(t=>occupiedMinutes.add(timeToMin(t)));
+
+  // Duración total de los servicios seleccionados en ESTA reserva (redondeada a 30 min)
+  const currentDur=booking.services.reduce((acc,s)=>acc+(getDurationMinutes(s.duration)||0),0);
+  const neededSlots=Math.max(1, Math.ceil(currentDur/30));
+
+  document.getElementById('timeGrid').innerHTML=ALL_SLOTS.map(t=>{
+    const startMin=timeToMin(t);
+    // Verificamos que existan suficientes slots consecutivos libres (y dentro del horario laboral)
+    let fits=true;
+    for(let i=0;i<neededSlots;i++){
+      const checkTime=minToTime(startMin+i*30);
+      if(!ALL_SLOTS.includes(checkTime) || occupiedMinutes.has(startMin+i*30)){
+        fits=false; break;
       }
     }
-
-    // 4. Validar si el servicio actual colisionaría con una cita futura agendada el mismo día
-    if (!isTaken) {
-      const newApptEnd = slotStart + currentServiceDuration;
-      isTaken = dayAppointments.some(appt => {
-        const apptStart = timeToMin(appt.time);
-        const apptDuration = parseDurationInMinutes(appt.duration);
-        const apptEnd = apptStart + apptDuration;
-
-        return slotStart < apptEnd && newApptEnd > apptStart;
-      });
-    }
-
-    const isSel = booking.time === slotStr;
-    return `<div class="time-slot${isTaken?' taken':''}${isSel?' selected':''}" onclick="${isTaken?'':'selectTime(\''+slotStr+'\')'}">${slotStr}${isTaken?'<br><span style="font-size:.6rem">Ocupado</span>':''}</div>`;
+    const isTaken=!fits;
+    const isSel=booking.time===t;
+    return `<div class="time-slot${isTaken?' taken':''}${isSel?' selected':''}" onclick="${isTaken?'':'selectTime(\''+t+'\')'}">${t}${isTaken?'<br><span style="font-size:.6rem">Ocupado</span>':''}</div>`;
   }).join('');
+
+  // Si el horario elegido previamente ya no alcanza (p.ej. se agregaron más servicios), lo invalidamos
+  if(booking.time){
+    const startMin=timeToMin(booking.time);
+    let stillFits=true;
+    for(let i=0;i<neededSlots;i++){
+      const checkTime=minToTime(startMin+i*30);
+      if(!ALL_SLOTS.includes(checkTime) || occupiedMinutes.has(startMin+i*30)){
+        stillFits=false; break;
+      }
+    }
+    if(!stillFits){
+      booking.time=null;
+      document.getElementById('btn2').disabled=true;
+    }
+  }
 }
 
 function selectTime(t){
@@ -1176,19 +1181,10 @@ function renderDayView(){
       <span class="acal-day-cnt">${dayAppts.length} cita${dayAppts.length!==1?'s':''}</span>
     </div>
     <div class="acal-day-grid">`;
-  ALL_SLOTS.forEach(slotStr=>{
-    const slotStart = timeToMin(slotStr);
-    const slotEnd = slotStart + 30;
-
-    // Buscar si alguna cita ocupa este bloque de tiempo en la agenda del día
-    const appt = dayAppts.find(a => {
-      const apptStart = timeToMin(a.time);
-      const apptEnd = apptStart + parseDurationInMinutes(a.duration);
-      return slotStart >= apptStart && slotStart < apptEnd;
-    });
-
-    const isBlocked = blockedH.includes(slotStr);
-    html+=`<div class="acal-time-lbl">${slotStr}</div>`;
+  ALL_SLOTS.forEach(t=>{
+    const appt=dayAppts.find(a=>a.time===t);
+    const isBlocked=blockedH.includes(t);
+    html+=`<div class="acal-time-lbl">${t}</div>`;
     html+=`<div class="acal-day-slot">`;
     if(appt){
       html+=`<div class="acal-day-ev" onclick="showApptDetail('${appt.id}')">
